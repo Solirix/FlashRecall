@@ -1,0 +1,11 @@
+{
+  "name": "flashrecall",
+  "private": true,
+  "version": "0.1.0",
+  "type": "commonjs",
+  "description": "Self-hosted multi-user Anki-style flashcard web app (zero dependencies)",
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node --test \"server/test/**/*.test.js\""
+  }
+}
