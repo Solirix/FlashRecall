@@ -5,6 +5,7 @@ import { el, icon, toast, fmtDuration, fmtSecs, skeleton } from '../ui.js';
 import { state, refreshDecks, deckColor, deckPath, deckDue, topDueDeck, navigate } from '../app.js';
 import { renderHeatmap } from '../components/heatmap.js';
 import { renderBarChart } from '../components/barchart.js';
+import { openDeckEditor } from '../deckdialogs.js';
 
 export async function render(main) {
   main.append(
@@ -81,8 +82,22 @@ export async function render(main) {
       stats.bestStreak ? `personal best ${stats.bestStreak}` : null));
 
   const decksList = el('div', { class: 'home-col' },
-    el('div', { class: 'section-label', text: 'Decks due' }),
-    dueDecks.length === 0
+    el('div', { class: 'section-label section-label-row' },
+      el('span', { text: 'Decks due' }),
+      decks.length ? el('a', { class: 'inline-link', href: '#/decks', text: 'Manage decks' }) : null),
+    !decks.length
+      ? el('div', { class: 'card deck-empty' },
+        el('div', { class: 'deck-empty-icon', html: icon('cards', 28) }),
+        el('h3', { text: 'Create your first deck' }),
+        el('p', { text: 'Decks hold the cards you study. Make one, then add cards to it.' }),
+        el('button', {
+          class: 'btn btn-primary',
+          onclick: async () => {
+            const deck = await openDeckEditor();
+            if (deck) navigate(`#/add?deck=${deck.id}`);
+          },
+        }, el('span', { html: icon('plus', 15) }), 'New deck'))
+      : dueDecks.length === 0
       ? el('div', { class: 'card all-caught-up' }, el('span', { html: icon('check', 16) }), 'All caught up — nothing due')
       : dueDecks.map((d) => {
         const c = d.counts || {};

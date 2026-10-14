@@ -99,6 +99,7 @@ function updateSyncLabels() {
 const NAV = [
   { name: 'home', label: 'Home', icon: 'home', hash: '#/home' },
   { name: 'study', label: 'Study', icon: 'layers', hash: null }, // resolves to top-due deck
+  { name: 'decks', label: 'Decks', icon: 'cards', hash: '#/decks' },
   { name: 'browse', label: 'Browse', icon: 'grid', hash: '#/browse' },
   { name: 'add', label: 'Add card', icon: 'plus', hash: '#/add' },
   { name: 'stats', label: 'Stats', icon: 'chart', hash: '#/stats' },
@@ -145,7 +146,14 @@ function renderSidebar() {
     }, el('span', { text: item.label }))));
 
   const deckSection = el('div', { class: 'side-section', id: 'side-decks' },
-    el('div', { class: 'side-label' }, el('span', { text: 'Decks' }), el('span', { text: 'Due' })));
+    el('div', { class: 'side-label' },
+      el('a', { class: 'side-label-link', href: '#/decks', text: 'Decks', title: 'Manage decks' }),
+      el('span', { class: 'side-label-right' },
+        el('span', { text: 'Due' }),
+        el('a', {
+          class: 'side-add', href: '#/decks?new=1', title: 'New deck', 'aria-label': 'New deck',
+          html: icon('plus', 13), onclick: () => document.body.classList.remove('nav-open'),
+        }))));
 
   const user = state.user;
   const bottom = el('div', { class: 'side-bottom' },
@@ -202,6 +210,13 @@ function renderSidebarDecks(container) {
     }
   };
   addNodes(tree, null);
+  if (!state.decks.length) {
+    tree.append(el('a', {
+      class: 'side-item side-empty', href: '#/decks?new=1',
+      onclick: () => document.body.classList.remove('nav-open'),
+      html: icon('plus', 14),
+    }, el('span', { text: 'Create a deck' })));
+  }
   host.append(tree);
   updateSyncLabels();
 }
@@ -275,6 +290,7 @@ const ROUTES = [
   { re: /^login$/, name: 'auth', view: 'auth' },
   { re: /^home$/, name: 'home', view: 'home' },
   { re: /^study\/(\d+)$/, name: 'study', view: 'study' },
+  { re: /^decks$/, name: 'decks', view: 'decks' },
   { re: /^browse$/, name: 'browse', view: 'browse' },
   { re: /^add$/, name: 'add', view: 'add' },
   { re: /^stats$/, name: 'stats', view: 'stats' },

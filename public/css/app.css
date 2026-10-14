@@ -485,6 +485,43 @@ input[type="checkbox"].switch:checked::after { left: 19px; background: var(--acc
 
 /* ---------- modal / toast / misc ---------- */
 
+.modal-text { font-size: 13px; color: var(--text-dim); line-height: 1.55; margin-bottom: 12px; }
+.btn-danger-solid { background: var(--red); border-color: var(--red); color: var(--accent-contrast); }
+.btn-danger-solid:hover { filter: brightness(1.1); color: var(--accent-contrast); }
+.icon-btn.icon-danger:hover { color: var(--red); }
+
+/* swatch picker (deck colour) */
+.swatch-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.swatch {
+  width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent;
+  box-shadow: 0 0 0 1px var(--border-strong); cursor: pointer; min-height: 0; flex-shrink: 0;
+}
+.swatch.on, .swatch-row input[type="color"].on { border-color: var(--surface); box-shadow: 0 0 0 2px var(--accent); }
+
+/* sidebar deck header */
+.side-label-link { color: inherit; }
+.side-label-link:hover { color: var(--text); }
+.side-label-right { display: inline-flex; align-items: center; gap: 8px; }
+.side-add {
+  width: 18px; height: 18px; border-radius: 5px; display: grid; place-items: center;
+  color: var(--text-dim); background: var(--surface-2);
+}
+.side-add:hover { color: var(--accent-contrast); background: var(--accent); }
+.side-item.side-empty { color: var(--text-faint); font-style: italic; }
+
+/* decks page */
+.deck-manage-list { display: flex; flex-direction: column; gap: 8px; }
+.deck-manage-row { margin-left: calc(var(--depth, 0) * 22px); }
+.deck-actions { display: flex; align-items: center; gap: 2px; }
+.deck-actions .btn { margin-right: 6px; }
+.deck-empty { text-align: center; padding: 40px 20px; max-width: 460px; margin: 20px auto; }
+.deck-empty-icon { color: var(--accent-2); display: grid; place-items: center; margin-bottom: 10px; }
+.deck-empty h3 { font-size: 16px; margin-bottom: 6px; }
+.deck-empty p { font-size: 13px; color: var(--text-dim); line-height: 1.55; margin-bottom: 18px; }
+.section-label-row { display: flex; justify-content: space-between; align-items: baseline; }
+.inline-link { text-transform: none; letter-spacing: 0; color: var(--accent-2); font-size: 12px; font-weight: 600; background: none; border: none; padding: 0; cursor: pointer; }
+.inline-link:hover { text-decoration: underline; }
+
 .modal-overlay {
   position: fixed; inset: 0; z-index: 100; background: var(--scrim);
   display: grid; place-items: center; padding: 18px;
@@ -538,6 +575,9 @@ input[type="checkbox"].switch:checked::after { left: 19px; background: var(--acc
 }
 
 @media (max-width: 640px) {
+  .swatch { width: 34px; height: 34px; }
+  .deck-manage-row { flex-wrap: wrap; margin-left: calc(var(--depth, 0) * 12px); }
+  .deck-manage-row .deck-actions { width: 100%; justify-content: flex-end; }
   .tile .tile-sub { position: static; max-width: none; text-align: left; margin-top: 4px; }
   .study-header { flex-wrap: wrap; row-gap: 4px; }
   .study-header .study-title { min-width: 0; }

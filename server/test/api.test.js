@@ -208,6 +208,14 @@ test('decks, notes, queue, answer, undo, browse, stats', async () => {
     // deck patch + delete
     const renamed = await call('PATCH', `/api/decks/${deck.id}`, { name: 'Renamed' });
     assert.equal(renamed.data.name, 'Renamed');
+
+    // reparenting under one's own descendant would orphan both decks: rejected
+    const child = (await call('POST', '/api/decks', { name: 'Child', parentId: deck.id })).data;
+    const grandchild = (await call('POST', '/api/decks', { name: 'Grandchild', parentId: child.id })).data;
+    assert.equal((await call('PATCH', `/api/decks/${deck.id}`, { parentId: grandchild.id })).status, 400);
+    assert.equal((await call('PATCH', `/api/decks/${grandchild.id}`, { parentId: null })).status, 200);
+    await call('DELETE', `/api/decks/${grandchild.id}`);
+    await call('DELETE', `/api/decks/${child.id}`);
     const del = await call('DELETE', `/api/decks/${deck.id}`);
     assert.equal(del.status, 200);
     tree = (await call('GET', '/api/decks/tree')).data;

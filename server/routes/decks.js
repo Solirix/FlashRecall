@@ -101,6 +101,12 @@ module.exports = function registerDeckRoutes(router, db) {
         if (pid === deck.id) throw badRequest('deck cannot be its own parent');
         const parent = db.prepare('SELECT * FROM decks WHERE id = ? AND user_id = ?').get(pid, req.user.id);
         if (!parent) throw notFound('parent deck not found');
+        // Walk up from the new parent; hitting this deck means a cycle.
+        const parentOf = db.prepare('SELECT parent_id FROM decks WHERE id = ?');
+        for (let cur = parent.parent_id, guard = 0; cur != null && guard < 1000; guard++) {
+          if (cur === deck.id) throw badRequest('cannot move a deck inside its own sub-deck');
+          cur = parentOf.get(cur)?.parent_id ?? null;
+        }
         parent_id = pid;
       }
     }

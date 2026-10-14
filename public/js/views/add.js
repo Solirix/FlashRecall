@@ -4,6 +4,7 @@
 import { api } from '../api.js';
 import { el, icon, toast, tagsInput } from '../ui.js';
 import { state, refreshDecks } from '../app.js';
+import { fillDeckSelect, openDeckEditor } from '../deckdialogs.js';
 
 function clozeCount(text) {
   const re = /\{\{c(\d+)::([^}]*?)\}\}/g;
@@ -13,28 +14,26 @@ function clozeCount(text) {
   return ords.size;
 }
 
-export async function render(main) {
+export async function render(main, params, query) {
   if (!state.decks.length) await refreshDecks().catch(() => {});
 
   let type = 'basic';
 
-  // Deck dropdown grouped by parent.
   const deckSel = el('select', {});
-  function fillDecks() {
-    deckSel.innerHTML = '';
-    const roots = state.decks.filter((d) => d.parentId == null);
-    const kids = (pid) => state.decks.filter((d) => d.parentId === pid);
-    for (const root of roots) {
-      const group = el('optgroup', { label: root.name });
-      group.append(el('option', { value: root.id, text: root.name }));
-      for (const k of kids(root.id)) group.append(el('option', { value: k.id, text: `　${k.name}` }));
-      deckSel.append(group);
-    }
-    const orphans = state.decks.filter((d) => d.parentId != null && !state.decks.some((p) => p.id === d.parentId));
-    for (const o of orphans) deckSel.append(el('option', { value: o.id, text: o.name }));
-    if (!state.decks.length) deckSel.append(el('option', { value: '', text: '(no decks yet)' }));
+  const noDeckHint = el('div', { class: 'field-hint', style: 'color:var(--orange)' },
+    'You need a deck before adding cards — create one with “New deck”.');
+  function fillDecks(selected = deckSel.value || query.get('deck')) {
+    fillDeckSelect(deckSel, { selected, none: state.decks.length ? null : '(no decks yet)' });
+    noDeckHint.style.display = state.decks.length ? 'none' : '';
   }
   fillDecks();
+  const newDeckBtn = el('button', {
+    type: 'button', class: 'btn', title: 'Create a new deck',
+    onclick: async () => {
+      const deck = await openDeckEditor();
+      if (deck) fillDecks(deck.id);
+    },
+  }, el('span', { html: icon('plus', 14) }), 'New deck');
 
   const typeSeg = el('div', { class: 'segmented' },
     el('button', { type: 'button', class: 'active', onclick: () => setType('basic') }, 'Basic'),
@@ -73,11 +72,15 @@ export async function render(main) {
     onsubmit: async (e) => {
       e.preventDefault();
       const deckId = Number(deckSel.value);
-      if (!deckId) { toast('Create a deck first', 'error'); return; }
+      if (!deckId) {
+        const deck = await openDeckEditor();
+        if (!deck) return;
+        fillDecks(deck.id);
+      }
       submitBtn.disabled = true;
       try {
         await api.post('/api/notes', {
-          deckId, type,
+          deckId: Number(deckSel.value), type,
           front: front.value, back: type === 'cloze' ? '' : back.value,
           extra: extra.value, tags: tags.getTags().join(' '),
         });
@@ -95,7 +98,9 @@ export async function render(main) {
     },
   },
   el('h2', { text: 'Add card' }),
-  el('div', { class: 'field' }, el('label', { text: 'Deck' }), deckSel),
+  el('div', { class: 'field' }, el('label', { text: 'Deck' }),
+    el('div', { style: 'display:flex;gap:8px' }, el('div', { style: 'flex:1;min-width:0' }, deckSel), newDeckBtn),
+    noDeckHint),
   el('div', { class: 'field' }, el('label', { text: 'Type' }), el('div', {}, typeSeg)),
   el('div', { class: 'field' }, el('label', { text: 'Front' }), front, clozeHint),
   backField,

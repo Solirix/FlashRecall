@@ -7,7 +7,7 @@ scheduling is powered by the FSRS-4.5 spaced-repetition algorithm.
 ## Features
 
 - Multi-user accounts with scrypt password hashing and session cookies
-- Decks (hierarchical, per-deck daily new-card limits)
+- Decks page: create, nest, rename, recolour, share and delete decks (per-deck daily new-card limits)
 - Basic and cloze note types (one card per `{{cN::...}}` cloze)
 - FSRS-4.5 scheduling with learning steps, lapses, fuzz, and per-user desired retention
 - Study queue with answer-time previews, undo, bury/suspend/flag, leech detection

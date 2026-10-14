@@ -51,6 +51,7 @@ const P = {
   check: 'M20 6 9 17l-5-5',
   caret: 'M9 6l6 6-6 6',
   cards: 'M8 3h12v13H8zM4 8v13h12M4 8l1-2',
+  share: 'M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.6 13.5l6.8 4M15.4 6.5l-6.8 4',
 };
 
 export function icon(name, size = 18) {
