@@ -32,11 +32,15 @@ class Router {
       if (route.method !== req.method) continue;
       const m = route.regex.exec(pathname);
       if (!m) continue;
-      const params = {};
-      route.keys.forEach((key, i) => {
-        params[key] = decodeURIComponent(m[i + 1]);
-      });
       try {
+        const params = {};
+        route.keys.forEach((key, i) => {
+          try {
+            params[key] = decodeURIComponent(m[i + 1]);
+          } catch {
+            throw httpError(400, 'malformed URL encoding in path');
+          }
+        });
         let body = {};
         if (BODY_METHODS.has(req.method)) {
           const raw = await readBody(req);

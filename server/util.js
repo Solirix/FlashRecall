@@ -40,13 +40,20 @@ function readBody(req, limit = 1024 * 1024) {
     const chunks = [];
     let size = 0;
     let settled = false;
+    // Reject upfront when Content-Length already exceeds the limit.
+    const contentLength = Number(req.headers['content-length']);
+    if (Number.isFinite(contentLength) && contentLength > limit) {
+      settled = true;
+      req.resume(); // drain without destroying the socket
+      reject(httpError(413, 'request body too large'));
+      return;
+    }
     req.on('data', (chunk) => {
-      if (settled) return;
+      if (settled) return; // keep draining; response flushes normally
       size += chunk.length;
       if (size > limit) {
         settled = true;
         reject(httpError(413, 'request body too large'));
-        req.destroy();
         return;
       }
       chunks.push(chunk);

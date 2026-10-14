@@ -17,6 +17,7 @@ async function boot() {
     db,
     base,
     async close() {
+      server.closeAllConnections();
       await new Promise((resolve) => server.close(resolve));
       db.close();
       fs.rmSync(dataDir, { recursive: true, force: true });
@@ -27,7 +28,7 @@ async function boot() {
 // Minimal fetch wrapper with a manual cookie jar.
 function client(base) {
   let cookie = null;
-  return async function call(method, p, body) {
+  const call = async function (method, p, body) {
     const headers = {};
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (cookie) headers.Cookie = cookie;
@@ -43,6 +44,8 @@ function client(base) {
     try { data = JSON.parse(text); } catch { /* static/plain responses */ }
     return { status: res.status, data, text };
   };
+  call.cookie = () => cookie;
+  return call;
 }
 
 async function registerUser(call, username) {
@@ -377,6 +380,83 @@ test('static serving and security headers', async () => {
 
     const traversal = await fetch(`${app.base}/../server/index.js`);
     assert.ok([403, 404].includes(traversal.status));
+  } finally {
+    await app.close();
+  }
+});
+
+test('malformed percent-encoding in path param -> 400 and server survives', async () => {
+  const app = await boot();
+  try {
+    const call = client(app.base);
+    await registerUser(call, 'mia');
+
+    const res = await fetch(`${app.base}/api/notes/%E0%A4%A`, {
+      headers: { Cookie: call.cookie() },
+    });
+    assert.equal(res.status, 400);
+    const data = await res.json();
+    assert.ok(data.error);
+
+    // server is still alive and the session intact
+    const alive = await call('GET', '/api/me');
+    assert.equal(alive.status, 200);
+    assert.equal(alive.data.username, 'mia');
+  } finally {
+    await app.close();
+  }
+});
+
+test('oversized body -> 413 delivered to the client', async () => {
+  const app = await boot();
+  try {
+    const call = client(app.base);
+    await registerUser(call, 'nina');
+
+    // over the 1MB limit, announced via Content-Length
+    const big = JSON.stringify({ name: 'x'.repeat(2 * 1024 * 1024) });
+    const res = await fetch(`${app.base}/api/decks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: call.cookie() },
+      body: big,
+    });
+    assert.equal(res.status, 413);
+    const data = await res.json();
+    assert.ok(data.error);
+
+    // connection and server still usable afterwards
+    const alive = await call('GET', '/api/me');
+    assert.equal(alive.status, 200);
+  } finally {
+    await app.close();
+  }
+});
+
+test('oversized streaming body (no Content-Length) -> 413 delivered', async () => {
+  const app = await boot();
+  try {
+    const call = client(app.base);
+    await registerUser(call, 'olga');
+
+    const chunk = new TextEncoder().encode('y'.repeat(256 * 1024));
+    const stream = new ReadableStream({
+      start(controller) {
+        for (let i = 0; i < 8; i++) controller.enqueue(chunk); // 2MB total
+        controller.close();
+      },
+    });
+    const res = await fetch(`${app.base}/api/decks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: call.cookie() },
+      body: stream,
+      duplex: 'half',
+    });
+    assert.equal(res.status, 413);
+    const data = await res.json();
+    assert.ok(data.error);
+
+    const alive = await call('GET', '/api/me');
+    assert.equal(alive.status, 200);
   } finally {
     await app.close();
   }

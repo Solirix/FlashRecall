@@ -138,7 +138,22 @@ function createServer({ dataDir } = {}) {
 
   const publicPaths = new Set(['/api/register', '/api/login']);
 
-  const server = http.createServer(async (req, res) => {
+  const server = http.createServer((req, res) => {
+    // Defense in depth: no handler rejection may crash the process.
+    handleRequest(req, res).catch((err) => {
+      console.error('Unhandled request error:', err);
+      try {
+        if (!res.headersSent) json(res, { error: 'internal server error' }, 500);
+        else if (!res.writableEnded) res.end();
+      } catch {
+        // socket already gone
+      }
+    });
+  });
+
+  return { server, db };
+
+  async function handleRequest(req, res) {
     setSecurityHeaders(res);
     let pathname;
     try {
@@ -166,9 +181,7 @@ function createServer({ dataDir } = {}) {
     }
 
     serveStatic(req, res, pathname);
-  });
-
-  return { server, db };
+  }
 }
 
 if (require.main === module) {
