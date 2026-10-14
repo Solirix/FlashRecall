@@ -51,12 +51,24 @@ const P = {
   check: 'M20 6 9 17l-5-5',
   caret: 'M9 6l6 6-6 6',
   cards: 'M8 3h12v13H8zM4 8v13h12M4 8l1-2',
+  clipboard: 'M9 4h6v3H9zM9 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-3M9 13l2 2 4-4',
+  book: 'M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2zM4 20a2 2 0 0 0 2 2h13v-4M8 7h7M8 11h5',
+  print: 'M7 9V3h10v6M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v7H7z',
   share: 'M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.6 13.5l6.8 4M15.4 6.5l-6.8 4',
 };
 
 export function icon(name, size = 18) {
   const fill = name === 'bolt' || name === 'play';
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${fill ? 'currentColor' : 'none'}" stroke="${fill ? 'none' : 'currentColor'}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${P[name] || ''}"/></svg>`;
+}
+
+// --- motion ---
+
+export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// The in-app "Reduced motion" setting is the single switch for animations.
+export function motionOK() {
+  return document.documentElement.dataset.motion !== 'reduced';
 }
 
 // --- toast ---
@@ -73,10 +85,15 @@ export function toast(message, type = 'info', ms = 3400) {
 
 export function openModal({ title, content, actions = [], onClose } = {}) {
   const root = document.getElementById('modal-root');
+  let closed = false;
   const close = () => {
-    overlay.remove();
+    if (closed) return;
+    closed = true;
     document.removeEventListener('keydown', keyHandler);
     if (onClose) onClose();
+    if (!motionOK()) { overlay.remove(); return; }
+    overlay.classList.add('closing');
+    setTimeout(() => overlay.remove(), 170);
   };
   const keyHandler = (e) => {
     if (e.key === 'Escape') { e.stopPropagation(); close(); }
@@ -95,6 +112,7 @@ export function openModal({ title, content, actions = [], onClose } = {}) {
     onclick: (e) => { if (e.target === overlay) close(); },
   }, modal);
   document.addEventListener('keydown', keyHandler);
+  window.addEventListener('recall:route-leave', close, { once: true }); // don't outlive the page
   root.append(overlay);
   const focusable = modal.querySelector('input, textarea, select, button');
   if (focusable) focusable.focus();

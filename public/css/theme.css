@@ -132,6 +132,7 @@
   background: color-mix(in srgb, var(--surface), var(--tint, transparent) 7%);
 }
 
+/* Settings › Reduced motion is the single switch for animation. */
 [data-motion="reduced"] *,
 [data-motion="reduced"] *::before,
 [data-motion="reduced"] *::after {
@@ -140,10 +141,3 @@
   scroll-behavior: auto !important;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    transition: none !important;
-    animation: none !important;
-    scroll-behavior: auto !important;
-  }
-}

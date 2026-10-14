@@ -14,6 +14,12 @@ scheduling is powered by the FSRS-4.5 spaced-repetition algorithm.
 - Statistics: retention, streaks, heatmap, review forecast, card maturity
 - Deck sharing between users (deep copy on accept)
 - Browser with a mini query language (`deck:"Name"`, `tag:foo`, `is:due`, `-` negation)
+- Practice tests from any deck: written, multiple choice or mixed; fill out the
+  whole test, then an instant auto-checker grades it (forgiving of case, typos,
+  accents and alternatives) and you can overrule it per question. Retake just the
+  ones you missed, or print the results / a Q&A study guide
+- Animated UI: page transitions, a 3D card flip on reveal, cards sliding through a
+  review session (Settings › Reduced motion turns it all off)
 - Themeable UI: Recall Dark, Light, Midnight (OLED) and Solarized themes, plus
   custom accent colour, font size, corner radius and reduced motion
 - Responsive layout: sidebar on desktop, drawer + bottom nav on phones, keyboard
@@ -79,5 +85,6 @@ All endpoints are JSON under `/api/*`; everything except `POST /api/register`,
 - Notes: `POST/GET/PATCH/DELETE /api/notes[/:id]`, `:id/suspend|bury|flag`, `GET /api/browse`
 - Study: `GET /api/study/:deckId/queue`, `POST /api/study/answer`, `POST /api/study/undo`
 - Stats: `GET /api/stats/summary?deckId=&rangeDays=`
+- Practice: `GET /api/decks/:id/practice?count=&format=written|choice|mixed&scope=all|studied&subdecks=0|1`
 - Settings: `GET/PUT /api/settings`
 - Sharing: `POST/GET /api/shares`, `POST /api/shares/:id/accept|decline`

@@ -55,6 +55,10 @@ export async function render(main, params, query) {
             onclick: () => navigate(`#/study/${deck.id}`),
           }, 'Study'),
           el('button', {
+            class: 'icon-btn', title: 'Practice test / study guide', 'aria-label': `Practice test for ${deck.name}`,
+            html: icon('clipboard', 16), onclick: () => navigate(`#/test?deck=${deck.id}`),
+          }),
+          el('button', {
             class: 'icon-btn', title: 'Add cards', 'aria-label': `Add cards to ${deck.name}`,
             html: icon('plus', 16), onclick: () => navigate(`#/add?deck=${deck.id}`),
           }),

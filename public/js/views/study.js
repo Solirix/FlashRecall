@@ -1,8 +1,12 @@
 // #/study/:deckId — full-focus review session.
 
 import { api } from '../api.js';
-import { el, icon, toast, openModal, mdBlocks, mdInline, fmtClock, fmtSecs } from '../ui.js';
+import {
+  el, icon, toast, openModal, mdBlocks, mdInline, fmtClock, fmtSecs, motionOK, sleep,
+} from '../ui.js';
 import { state, navigate, refreshDecks } from '../app.js';
+
+const GRADE_COLOR = { 1: 'var(--red)', 2: 'var(--orange)', 3: 'var(--green)', 4: 'var(--blue)' };
 
 const GRADES = [
   { g: 1, name: 'Again', cls: 'g1', key: 'again' },
@@ -18,6 +22,7 @@ function renderCloze(text, ord, side) {
     const clozeText = sep === -1 ? inner : inner.slice(0, sep);
     const hint = sep === -1 ? null : inner.slice(sep + 2);
     if (side === 'front' && parseInt(n, 10) === ord) return hint ? `[${hint}]` : '[…]';
+    if (side === 'reveal' && parseInt(n, 10) === ord) return `**${clozeText}**`;
     return clozeText;
   });
 }
@@ -50,6 +55,7 @@ export async function render(main, params) {
   let revealed = false;
   let revealedAt = 0;
   let busy = false;
+  let view = null; // current card's { card, scene, flip, controls }
 
   // ---------- chrome ----------
 
@@ -131,7 +137,7 @@ export async function render(main, params) {
     sessionLine.textContent = `session ${fmtClock(Date.now() - session.startedAt)} · ${done} answered`;
   }
 
-  function showCard() {
+  function showCard({ from = 'right', animate = true } = {}) {
     const card = current();
     if (!card) { showSummary(false); return; }
     revealed = false;
@@ -143,17 +149,70 @@ export async function render(main, params) {
     updateMeta();
 
     const tags = (card.tags || '').split(/\s+/).filter(Boolean);
-    stage.innerHTML = '';
-    stage.append(
-      el('div', { class: 'study-card' },
-        el('div', { class: 'card-top' },
-          el('span', { class: 'chip', text: (card.type || 'basic').toUpperCase() }),
-          el('div', { class: 'tags-row' }, tags.map((t) => el('span', { class: 'tag-chip', text: `#${t}` })))),
-        el('div', { class: 'study-front', html: mdBlocks(card.front) }),
-        el('div', { class: 'study-hint', text: hintFor(card) }),
-        el('div', { class: 'study-source', text: [queue.deck.name, card.extra && firstLine(card.extra)].filter(Boolean).join(' · ') })),
-      el('button', { class: 'btn btn-primary', onclick: reveal },
+    const top = () => el('div', { class: 'card-top' },
+      el('span', { class: 'chip', text: (card.type || 'basic').toUpperCase() }),
+      el('div', { class: 'tags-row' }, tags.map((t) => el('span', { class: 'tag-chip', text: `#${t}` }))));
+
+    const frontFace = el('div', {
+      class: 'study-card face face-front', title: 'Click or press space to flip',
+      onclick: () => reveal(),
+    },
+    top(),
+    el('div', { class: 'study-front', html: mdBlocks(card.front) }),
+    el('div', { class: 'study-hint', text: hintFor(card) }),
+    el('div', { class: 'study-source', text: [queue.deck.name, card.extra && firstLine(card.extra)].filter(Boolean).join(' · ') }));
+
+    const flip = el('div', { class: 'flip-card' }, frontFace, backFace(card, tags));
+    const scene = el('div', {
+      class: `flip-scene${animate && motionOK() ? (from === 'left' ? ' card-in-left' : ' card-in') : ''}`,
+    }, flip);
+    const controls = el('div', { class: 'study-controls' },
+      el('button', { class: 'btn btn-primary', onclick: () => reveal() },
         'Show Answer', el('span', { class: 'kbd', text: 'space' })));
+
+    view = { card, scene, flip, controls };
+    stage.innerHTML = '';
+    stage.append(scene, controls);
+  }
+
+  function backFace(card, tags) {
+    // Cloze answers are the sentence with the blank filled in (bolded); the back
+    // field, if any, is supporting detail.
+    const isCloze = card.type === 'cloze';
+    const question = isCloze ? (card.reveal || card.front) : card.front;
+    const backParas = String(card.back || '').split(/\n+/).filter((l) => l.trim());
+    const [answer, ...rest] = isCloze ? [null, ...backParas] : backParas;
+    const canSpeak = 'speechSynthesis' in window && typeof window.SpeechSynthesisUtterance === 'function';
+    const playBtn = canSpeak
+      ? el('button', {
+        class: 'btn play-btn', onclick: () => {
+          try {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(String(question || '').replace(/\*\*|__|`|\*/g, ''));
+            window.speechSynthesis.speak(u);
+          } catch { toast('speech playback unavailable', 'error'); }
+        },
+      }, el('span', { html: icon('speaker', 14) }), 'Play')
+      : null;
+
+    return el('div', { class: 'study-card face face-back' },
+      el('div', { class: 'card-top' },
+        el('span', { class: 'chip', text: (card.type || 'basic').toUpperCase() }),
+        el('div', { class: 'tags-row' }, tags.map((t) => el('span', { class: 'tag-chip', text: `#${t}` })), playBtn)),
+      el('div', { class: `study-front small${isCloze ? ' cloze-reveal' : ''}`, html: mdBlocks(question) }),
+      el('hr', { class: 'study-divider' }),
+      answer ? el('div', { class: 'answer-section' },
+        el('span', { class: 'section-label', text: 'Answer' }),
+        el('div', { class: 'answer-reading', html: mdBlocks(answer) })) : null,
+      rest.length ? el('div', { class: 'answer-section' },
+        el('span', { class: 'section-label', text: 'Details' }),
+        el('div', { class: 'answer-body', html: rest.map((p) => `<p>${mdInline(p)}</p>`).join('') })) : null,
+      card.extra ? el('div', { class: 'answer-extra' },
+        el('span', { class: 'section-label', text: 'Extra' }),
+        el('div', { class: 'ex-main', html: mdBlocks(card.extra.split(/\n+/)[0]) }),
+        card.extra.split(/\n+/).length > 1
+          ? el('div', { class: 'ex-note', html: mdBlocks(card.extra.split(/\n+/).slice(1).join('\n')) })
+          : null) : null);
   }
 
   function hintFor(card) {
@@ -165,59 +224,31 @@ export async function render(main, params) {
     return line.length > 80 ? `${line.slice(0, 80)}…` : line;
   }
 
-  function reveal() {
+  function reveal({ instant = false } = {}) {
     const card = current();
-    if (!card || revealed || busy) return;
+    if (!card || !view || revealed || busy) return;
     revealed = true;
     revealedAt = Date.now();
 
-    const backParas = String(card.back || '').split(/\n+/).filter((l) => l.trim());
-    const [answer, ...rest] = backParas;
-    const tags = (card.tags || '').split(/\s+/).filter(Boolean);
+    const { scene, flip, controls } = view;
+    scene.classList.remove('card-in', 'card-in-left');
+    if (instant) flip.classList.add('instant');
+    else if (motionOK()) {
+      scene.classList.add('flipping');
+      setTimeout(() => scene.classList.remove('flipping'), 700);
+    }
+    flip.classList.add('flipped');
+    if (instant) requestAnimationFrame(() => flip.classList.remove('instant'));
 
-    const canSpeak = 'speechSynthesis' in window && typeof window.SpeechSynthesisUtterance === 'function';
-    const playBtn = canSpeak
-      ? el('button', {
-        class: 'btn play-btn', onclick: () => {
-          try {
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(String(card.front || '').replace(/\*\*|__|`|\*/g, ''));
-            window.speechSynthesis.speak(u);
-          } catch { toast('speech playback unavailable', 'error'); }
-        },
-      }, el('span', { html: icon('speaker', 14) }), 'Play')
-      : null;
-
-    stage.innerHTML = '';
-    stage.append(
-      el('div', { class: 'study-card' },
-        el('div', { class: 'card-top' },
-          el('span', { class: 'chip', text: (card.type || 'basic').toUpperCase() }),
-          el('div', { class: 'tags-row' }, tags.map((t) => el('span', { class: 'tag-chip', text: `#${t}` })))),
-        el('div', { style: 'position:relative' },
-          el('div', { class: 'study-front small', html: mdBlocks(card.front) }),
-          playBtn),
-        el('hr', { class: 'study-divider' }),
-        answer ? el('div', { class: 'answer-section' },
-          el('span', { class: 'section-label', text: 'Answer' }),
-          el('div', { class: 'answer-reading', html: mdBlocks(answer) })) : null,
-        rest.length ? el('div', { class: 'answer-section' },
-          el('span', { class: 'section-label', text: 'Details' }),
-          el('div', { class: 'answer-body', html: rest.map((p) => `<p>${mdInline(p)}</p>`).join('') })) : null,
-        card.extra ? el('div', { class: 'answer-extra' },
-          el('span', { class: 'section-label', text: 'Extra' }),
-          el('div', { class: 'ex-main', html: mdBlocks(card.extra.split(/\n+/)[0]) }),
-          card.extra.split(/\n+/).length > 1
-            ? el('div', { class: 'ex-note', html: mdBlocks(card.extra.split(/\n+/).slice(1).join('\n')) })
-            : null) : null),
-      el('div', {},
-        el('div', { class: 'grade-row' }, GRADES.map(({ g, name, cls, key }) =>
-          el('button', { class: `grade-btn ${cls}`, onclick: () => grade(g) },
-            el('span', { class: 'g-key', text: String(g) }),
-            el('div', { class: 'g-name', text: name }),
-            el('div', { class: 'g-ivl', text: (card.previews && card.previews[key]) || '…' })))),
-        el('div', { class: 'study-caption', style: 'margin-top:10px' },
-          `press 3 · this card returns in ${(card.previews && card.previews.good) || '…'} · desired retention ${(state.settings?.desiredRetention ?? 0.9).toFixed(2)}`)));
+    controls.innerHTML = '';
+    controls.append(
+      el('div', { class: 'grade-row' }, GRADES.map(({ g, name, cls, key }) =>
+        el('button', { class: `grade-btn ${cls}`, onclick: () => grade(g) },
+          el('span', { class: 'g-key', text: String(g) }),
+          el('div', { class: 'g-name', text: name }),
+          el('div', { class: 'g-ivl', text: (card.previews && card.previews[key]) || '…' })))),
+      el('div', { class: 'study-caption', style: 'margin-top:10px' },
+        `press 3 · this card returns in ${(card.previews && card.previews.good) || '…'} · desired retention ${(state.settings?.desiredRetention ?? 0.9).toFixed(2)}`));
     updateMeta();
   }
 
@@ -226,8 +257,15 @@ export async function render(main, params) {
     if (!card || !revealed || busy) return;
     busy = true;
     const durationMs = Math.max(0, Date.now() - revealedAt);
+    let exit = null;
+    if (view && motionOK()) {
+      view.scene.style.setProperty('--grade', GRADE_COLOR[g]);
+      view.scene.classList.add('card-out');
+      exit = sleep(220);
+    }
     try {
-      const res = await api.post('/api/study/answer', { cardId: card.id, grade: g, durationMs });
+      const [res] = await Promise.all([
+        api.post('/api/study/answer', { cardId: card.id, grade: g, durationMs }), exit]);
       session.history.push({ card, idx });
       session.answered += 1;
       session.grades.push(g);
@@ -238,6 +276,7 @@ export async function render(main, params) {
       showCard();
     } catch (err) {
       busy = false;
+      view?.scene.classList.remove('card-out');
       toast(err.message || 'answer failed', 'error');
     }
   }
@@ -257,7 +296,7 @@ export async function render(main, params) {
         if (cards[i].id === last.card.id) { cards.splice(i, 1); break; }
       }
       idx = Math.min(last.idx, cards.length - 1);
-      showCard();
+      showCard({ from: 'left' });
       toast('Undone', 'success');
     } catch (err) {
       busy = false;
@@ -331,6 +370,7 @@ export async function render(main, params) {
               if (card.type === 'cloze') {
                 card.front = renderCloze(front.value, card.ord, 'front');
                 card.back = renderCloze(back.value, card.ord, 'back');
+                card.reveal = renderCloze(front.value, card.ord, 'reveal');
               } else {
                 card.front = front.value;
                 card.back = back.value;
@@ -339,7 +379,9 @@ export async function render(main, params) {
               card.tags = tags.value.trim();
               close();
               toast('Saved', 'success');
-              if (revealed) { revealed = false; showCard(); reveal(); } else showCard();
+              const wasRevealed = revealed;
+              showCard({ animate: false });
+              if (wasRevealed) reveal({ instant: true });
             } catch (err) {
               toast(err.message || 'save failed', 'error');
             }
@@ -366,7 +408,10 @@ export async function render(main, params) {
         el('div', {}, el('div', { class: 'big', text: fmtClock(mins) }), el('div', { class: 'tile-label', text: 'Time' })),
         el('div', {}, el('div', { class: 'big', text: pace != null ? fmtSecs(pace) : '—' }), el('div', { class: 'tile-label', text: 'Avg pace' })),
         el('div', {}, el('div', { class: 'big', text: retention != null ? `${retention}%` : '—' }), el('div', { class: 'tile-label', text: 'Retention' }))) : null,
-      el('button', { class: 'btn btn-primary', onclick: () => navigate('#/home') }, 'Back home')));
+      el('div', { class: 'summary-actions' },
+        el('button', { class: 'btn', onclick: () => navigate(`#/test?deck=${deckId}`) },
+          el('span', { html: icon('clipboard', 15) }), 'Practice test'),
+        el('button', { class: 'btn btn-primary', onclick: () => navigate('#/home') }, 'Back home'))));
     refreshDecks().catch(() => {});
   }
 

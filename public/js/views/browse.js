@@ -107,7 +107,7 @@ export async function render(main, params, query) {
             }
           },
         }, `#${t}`, n > 1 ? ` ${n}` : ''))));
-    decksPane.append(el('p', { class: 'pane-note', text: 'Tags sync across decks. Click to filter the list.' }));
+    decksPane.append(el('p', { class: 'pane-note', text: 'Tags are shared across decks. Click one to filter.' }));
   }
 
   function deckQueryItem(d, depth) {

@@ -1,14 +1,13 @@
 // FlashRecall app entry: hash router, auth gate, shell (sidebar/topbar/bottomnav),
-// theming, global keys, sync indicator.
+// theming, global keys, view transitions.
 
 import { api, setUnauthorizedHandler } from './api.js';
-import { el, icon, toast, initials, relTime } from './ui.js';
+import { el, icon, toast, initials, motionOK, sleep } from './ui.js';
 
 export const state = {
   user: null,
   decks: [],
   settings: null,
-  lastSync: null,
   route: { name: 'home', params: [], query: new URLSearchParams() },
 };
 
@@ -82,18 +81,6 @@ export async function refreshDecks() {
   return state.decks;
 }
 
-// ---------- sync indicator ----------
-
-export function markSynced() {
-  state.lastSync = Date.now();
-  updateSyncLabels();
-}
-
-function updateSyncLabels() {
-  const label = `Synced · ${state.lastSync ? relTime(state.lastSync) : '—'}`;
-  for (const n of document.querySelectorAll('[data-sync-label]')) n.textContent = label;
-}
-
 // ---------- shell ----------
 
 const NAV = [
@@ -101,6 +88,7 @@ const NAV = [
   { name: 'study', label: 'Study', icon: 'layers', hash: null }, // resolves to top-due deck
   { name: 'decks', label: 'Decks', icon: 'cards', hash: '#/decks' },
   { name: 'browse', label: 'Browse', icon: 'grid', hash: '#/browse' },
+  { name: 'test', label: 'Practice', icon: 'clipboard', hash: '#/test' },
   { name: 'add', label: 'Add card', icon: 'plus', hash: '#/add' },
   { name: 'stats', label: 'Stats', icon: 'chart', hash: '#/stats' },
 ];
@@ -157,13 +145,6 @@ function renderSidebar() {
 
   const user = state.user;
   const bottom = el('div', { class: 'side-bottom' },
-    el('div', { class: 'sync-line' },
-      el('span', { class: 'sync-dot' }),
-      el('span', { 'data-sync-label': '', text: 'Synced · —' }),
-      el('button', {
-        title: 'Refresh decks', html: icon('sync', 14),
-        onclick: async () => { await refreshDecks().catch(() => {}); markSynced(); route(); },
-      })),
     el('div', { class: 'user-chip' },
       el('span', { class: 'avatar', text: initials(user ? user.displayName || user.username : '?') }),
       el('span', { class: 'user-name', text: user ? (user.displayName || user.username) : '' }),
@@ -218,7 +199,6 @@ function renderSidebarDecks(container) {
     }, el('span', { text: 'Create a deck' })));
   }
   host.append(tree);
-  updateSyncLabels();
 }
 
 function renderTopbar() {
@@ -251,9 +231,6 @@ function renderTopbar() {
     el('div', { class: 'search-box' },
       el('span', { html: icon('search', 15) }), searchInput, el('span', { class: 'kbd', text: '⌘K' })),
     el('div', { class: 'topbar-right' },
-      el('span', { class: 'sync-pill' },
-        el('span', { html: icon('sync', 12) }),
-        el('span', { class: 'sync-pill-text', 'data-sync-label': '', text: 'Synced' })),
       el('span', {
         class: 'avatar',
         text: initials(state.user ? state.user.displayName || state.user.username : '?'),
@@ -262,7 +239,8 @@ function renderTopbar() {
 }
 
 function renderBottomnav() {
-  return el('nav', { id: 'bottomnav' }, NAV.map((item) => el('a', {
+  // "Add card" lives in the topbar + button on phones; keeps the bar to six items.
+  return el('nav', { id: 'bottomnav' }, NAV.filter((item) => item.name !== 'add').map((item) => el('a', {
     class: `bn-item${state.route.name === item.name ? ' active' : ''}`,
     href: item.hash || '#/study',
     dataset: { nav: item.name },
@@ -281,7 +259,6 @@ function renderShell() {
   document.body.classList.remove('nav-open');
   const wrap = el('div', { class: 'main-wrap' }, renderTopbar(), el('main', { id: 'main' }));
   app.append(renderSidebar(), wrap, renderBottomnav());
-  markSynced();
 }
 
 // ---------- router ----------
@@ -292,6 +269,7 @@ const ROUTES = [
   { re: /^study\/(\d+)$/, name: 'study', view: 'study' },
   { re: /^decks$/, name: 'decks', view: 'decks' },
   { re: /^browse$/, name: 'browse', view: 'browse' },
+  { re: /^test$/, name: 'test', view: 'test' },
   { re: /^add$/, name: 'add', view: 'add' },
   { re: /^stats$/, name: 'stats', view: 'stats' },
   { re: /^settings$/, name: 'settings', view: 'settings' },
@@ -341,7 +319,15 @@ export async function route() {
 
   const main = document.getElementById('main');
   window.dispatchEvent(new CustomEvent('recall:route-leave')); // views clean up listeners/timers here
+  // Outgoing view fades up and away; the incoming one animates in via CSS.
+  if (motionOK() && main.childElementCount && !main.classList.contains('view-exit')) {
+    main.classList.add('view-exit');
+    await sleep(150);
+    if (token !== routeToken) return;
+  }
+  main.classList.remove('view-exit');
   main.innerHTML = '';
+  window.scrollTo(0, 0);
   try {
     const mod = await loadView(matched.view);
     if (token !== routeToken) return; // superseded by a newer navigation
@@ -375,8 +361,6 @@ async function boot() {
     navigate('#/login');
   });
   window.addEventListener('hashchange', route);
-  window.addEventListener('recall:write', markSynced);
-  setInterval(updateSyncLabels, 30000);
 
   try {
     const me = await api.get('/api/me');

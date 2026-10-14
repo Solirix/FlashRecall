@@ -30,7 +30,6 @@ async function request(path, { method = 'GET', body } = {}) {
     }
     throw err;
   }
-  if (method !== 'GET') window.dispatchEvent(new CustomEvent('recall:write'));
   return data;
 }
 
