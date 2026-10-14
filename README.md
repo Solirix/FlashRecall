@@ -14,6 +14,10 @@ scheduling is powered by the FSRS-4.5 spaced-repetition algorithm.
 - Statistics: retention, streaks, heatmap, review forecast, card maturity
 - Deck sharing between users (deep copy on accept)
 - Browser with a mini query language (`deck:"Name"`, `tag:foo`, `is:due`, `-` negation)
+- Themeable UI: Recall Dark, Light, Midnight (OLED) and Solarized themes, plus
+  custom accent colour, font size, corner radius and reduced motion
+- Responsive layout: sidebar on desktop, drawer + bottom nav on phones, keyboard
+  shortcuts for studying (space, 1–4, e, -, ctrl+z)
 
 ## Quickstart (Docker)
 
@@ -21,7 +25,20 @@ scheduling is powered by the FSRS-4.5 spaced-repetition algorithm.
 docker compose up -d --build
 ```
 
-Then open http://localhost:3000 and create an account.
+Then open http://localhost:3000 and create an account. That's it — no
+`npm install`, no build step, one container, one volume.
+
+Options (set in the shell or a `.env` file next to `docker-compose.yml`):
+
+```sh
+RECALL_PORT=8080 docker compose up -d --build      # publish on a different port
+REGISTRATION_OPEN=false docker compose up -d        # close sign-ups after setup
+```
+
+The container has a built-in health check (`GET /api/health`). To upgrade,
+`git pull && docker compose up -d --build` — your data stays in the
+`recall-data` volume, and browsers revalidate assets so nobody runs stale JS.
+For HTTPS, put any reverse proxy (Caddy, Traefik, nginx) in front of port 3000.
 
 ## Local development
 
@@ -53,9 +70,10 @@ docker compose cp recall:/data/recall.db ./backup-recall.db
 
 ## API overview
 
-All endpoints are JSON under `/api/*`; everything except `POST /api/register`
-and `POST /api/login` requires the session cookie.
+All endpoints are JSON under `/api/*`; everything except `POST /api/register`,
+`POST /api/login` and `GET /api/health` requires the session cookie.
 
+- Health: `GET /api/health` (public)
 - Auth: `register`, `login`, `logout`, `GET /api/me`, `PATCH /api/me`
 - Decks: `GET /api/decks/tree`, `POST/PATCH/DELETE /api/decks[/:id]`
 - Notes: `POST/GET/PATCH/DELETE /api/notes[/:id]`, `:id/suspend|bury|flag`, `GET /api/browse`

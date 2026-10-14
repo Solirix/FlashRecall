@@ -1,8 +1,12 @@
 services:
   recall:
     build: .
+    image: flashrecall:latest
     ports:
-      - "3000:3000"
+      - "${RECALL_PORT:-3000}:3000"
+    environment:
+      # Set to "false" after creating your accounts to close public sign-ups.
+      REGISTRATION_OPEN: "${REGISTRATION_OPEN:-true}"
     volumes:
       - recall-data:/data
     restart: unless-stopped

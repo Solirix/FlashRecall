@@ -3,6 +3,7 @@
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 
 const { openDatabase } = require('./db');
 const { Router } = require('./router');
@@ -61,9 +62,17 @@ function serveStatic(req, res, pathname) {
       return;
     }
     const ext = path.extname(filePath).toLowerCase();
+    // Always revalidate (cheap 304s) so a redeploy never leaves stale JS in browsers.
+    const etag = `"${crypto.createHash('sha1').update(data).digest('base64url')}"`;
+    if (req.headers['if-none-match'] === etag) {
+      res.writeHead(304, { ETag: etag, 'Cache-Control': 'no-cache' });
+      res.end();
+      return;
+    }
     res.writeHead(200, {
       'Content-Type': MIME[ext] || 'application/octet-stream',
-      'Cache-Control': ext === '.html' ? 'no-cache' : 'max-age=3600',
+      'Cache-Control': 'no-cache',
+      ETag: etag,
       'Content-Length': data.length,
     });
     if (req.method === 'HEAD') res.end();
@@ -136,7 +145,12 @@ function createServer({ dataDir } = {}) {
   require('./routes/shares')(router, db);
   require('./routes/settings')(router, db);
 
-  const publicPaths = new Set(['/api/register', '/api/login']);
+  router.get('/api/health', (req, res) => {
+    db.prepare('SELECT 1').get();
+    json(res, { ok: true });
+  });
+
+  const publicPaths = new Set(['/api/register', '/api/login', '/api/health']);
 
   const server = http.createServer((req, res) => {
     // Defense in depth: no handler rejection may crash the process.
