@@ -143,6 +143,7 @@ function createServer({ dataDir } = {}) {
   require('./routes/study')(router, db, ctx);
   require('./routes/stats')(router, db);
   require('./routes/shares')(router, db);
+  require('./routes/practice')(router, db);
   require('./routes/settings')(router, db);
 
   router.get('/api/health', (req, res) => {

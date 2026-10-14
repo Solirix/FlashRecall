@@ -87,6 +87,7 @@ function intInRange(v, min, max) {
 }
 
 function clampInt(v, fallback, min, max) {
+  if (v == null || v === '') return fallback;
   const n = Number(v);
   if (!Number.isInteger(n)) return fallback;
   return Math.min(max, Math.max(min, n));
@@ -137,6 +138,7 @@ function renderCloze(text, ord, side) {
     if (side === 'front' && parseInt(n, 10) === ord) {
       return hint ? `[${hint}]` : '[…]';
     }
+    if (side === 'reveal' && parseInt(n, 10) === ord) return `**${clozeText}**`;
     return clozeText;
   });
 }

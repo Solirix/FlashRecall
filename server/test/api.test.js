@@ -2,57 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const { createServer } = require('../index');
-
-async function boot() {
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'recall-test-'));
-  const { server, db } = createServer({ dataDir });
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const base = `http://127.0.0.1:${server.address().port}`;
-  return {
-    server,
-    db,
-    base,
-    async close() {
-      server.closeAllConnections();
-      await new Promise((resolve) => server.close(resolve));
-      db.close();
-      fs.rmSync(dataDir, { recursive: true, force: true });
-    },
-  };
-}
-
-// Minimal fetch wrapper with a manual cookie jar.
-function client(base) {
-  let cookie = null;
-  const call = async function (method, p, body) {
-    const headers = {};
-    if (body !== undefined) headers['Content-Type'] = 'application/json';
-    if (cookie) headers.Cookie = cookie;
-    const res = await fetch(base + p, {
-      method,
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    const setCookie = res.headers.get('set-cookie');
-    if (setCookie) cookie = setCookie.split(';')[0];
-    const text = await res.text();
-    let data = null;
-    try { data = JSON.parse(text); } catch { /* static/plain responses */ }
-    return { status: res.status, data, text };
-  };
-  call.cookie = () => cookie;
-  return call;
-}
-
-async function registerUser(call, username) {
-  const res = await call('POST', '/api/register', { username, password: 'password123' });
-  assert.equal(res.status, 201, JSON.stringify(res.data));
-  return res.data;
-}
+const { boot, client, registerUser } = require('./helpers');
 
 test('register -> me, duplicate register 409, login wrong password 401', async () => {
   const app = await boot();
@@ -136,6 +86,9 @@ test('decks, notes, queue, answer, undo, browse, stats', async () => {
     assert.equal(c1.front, '[…] is the capital of France');
     const c2 = queue.cards.find((c) => c.type === 'cloze' && c.ord === 2);
     assert.equal(c2.front, 'Paris is the capital of [country]');
+    // the answer side shows the hidden text, highlighted
+    assert.equal(c1.reveal, '**Paris** is the capital of France');
+    assert.equal(c2.reveal, 'Paris is the capital of **France**');
     assert.ok(c1.previews.again && c1.previews.easy);
 
     // answer grade 3 -> scheduled + review row

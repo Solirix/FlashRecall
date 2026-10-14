@@ -38,6 +38,7 @@ function toStudyCard(row, retention, now) {
     type: row.type,
     front,
     back,
+    reveal: row.type === 'cloze' ? renderCloze(row.front, row.ord, 'reveal') : null,
     extra: row.extra,
     tags: row.tags,
     state: row.state,
