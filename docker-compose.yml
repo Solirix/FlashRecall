@@ -1,0 +1,11 @@
+services:
+  recall:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - recall-data:/data
+    restart: unless-stopped
+
+volumes:
+  recall-data:
