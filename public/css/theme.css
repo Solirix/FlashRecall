@@ -1,0 +1,141 @@
+/* FlashRecall theme tokens. All colors/surfaces/radii live here as custom
+   properties; components consume vars only (no hardcoded hex elsewhere). */
+
+:root,
+[data-theme="recall-dark"] {
+  color-scheme: dark;
+  --bg: #07090f;
+  --bg-elev: #0b0e14;
+  --surface: #10141f;
+  --surface-2: #161b28;
+  --surface-3: #1d2433;
+  --border: #1e2433;
+  --border-strong: #2b3348;
+  --text: #e9ebf4;
+  --text-dim: #9aa1b8;
+  --text-faint: #5d6478;
+  --accent: #7c6cff;
+  --accent-2: #8b7cff;
+  --accent-soft: rgba(124, 108, 255, 0.16);
+  --accent-contrast: #ffffff;
+  --green: #3dd68c;
+  --red: #f2616b;
+  --orange: #f0a04b;
+  --blue: #5ea2f7;
+  --yellow: #e8c94a;
+  --teal: #2dd4bf;
+  --violet: #a78bfa;
+  --tint: transparent;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eef0f6;
+  --bg-elev: #f7f8fc;
+  --surface: #ffffff;
+  --surface-2: #f0f2f8;
+  --surface-3: #e4e7f0;
+  --border: #dfe2ec;
+  --border-strong: #c6cbdb;
+  --text: #1c2030;
+  --text-dim: #5a6076;
+  --text-faint: #9aa0b4;
+  --accent: #6a5ae0;
+  --accent-2: #7c6cff;
+  --accent-soft: rgba(106, 90, 224, 0.12);
+  --accent-contrast: #ffffff;
+  --green: #1f9e64;
+  --red: #d9434e;
+  --orange: #d07f22;
+  --blue: #2f7fe0;
+  --yellow: #b5981f;
+  --teal: #149e8c;
+  --violet: #7c5cd6;
+}
+
+[data-theme="midnight"] {
+  color-scheme: dark;
+  --bg: #000000;
+  --bg-elev: #050508;
+  --surface: #0a0a10;
+  --surface-2: #101018;
+  --surface-3: #171724;
+  --border: #1a1a26;
+  --border-strong: #2a2a3c;
+  --text: #eceef6;
+  --text-dim: #9096ac;
+  --text-faint: #565b70;
+  --accent: #7c6cff;
+  --accent-2: #9a8fff;
+  --accent-soft: rgba(124, 108, 255, 0.18);
+  --accent-contrast: #ffffff;
+  --green: #3dd68c;
+  --red: #f2616b;
+  --orange: #f0a04b;
+  --blue: #5ea2f7;
+  --yellow: #e8c94a;
+  --teal: #2dd4bf;
+  --violet: #a78bfa;
+}
+
+[data-theme="solarized"] {
+  color-scheme: dark;
+  --bg: #002b36;
+  --bg-elev: #01303c;
+  --surface: #073642;
+  --surface-2: #0a4150;
+  --surface-3: #0f4c5c;
+  --border: #0f4653;
+  --border-strong: #1c5a68;
+  --text: #93a1a1;
+  --text-dim: #839496;
+  --text-faint: #586e75;
+  --accent: #6c71c4;
+  --accent-2: #8a8fd8;
+  --accent-soft: rgba(108, 113, 196, 0.2);
+  --accent-contrast: #ffffff;
+  --green: #859900;
+  --red: #dc322f;
+  --orange: #cb4b16;
+  --blue: #268bd2;
+  --yellow: #b58900;
+  --teal: #2aa198;
+  --violet: #6c71c4;
+}
+
+:root {
+  --radius: 12px;
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-lg: calc(var(--radius) * 1.4);
+  --font-size: 16px;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-jp: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", "Yu Gothic", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --sidebar-w: 240px;
+  --topbar-h: 56px;
+  --speed: 160ms;
+}
+
+/* Surface tint: subtle hue shift mixed into surfaces (user setting). */
+.tinted,
+.card,
+.tile,
+.pane {
+  background: color-mix(in srgb, var(--surface), var(--tint, transparent) 7%);
+}
+
+[data-motion="reduced"] *,
+[data-motion="reduced"] *::before,
+[data-motion="reduced"] *::after {
+  transition: none !important;
+  animation: none !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
