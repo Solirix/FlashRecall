@@ -24,7 +24,8 @@ async function request(path, { method = 'GET', body } = {}) {
   if (!res.ok) {
     const err = { status: res.status, message: (data && data.error) || `request failed (${res.status})` };
     if (res.status === 401 && onUnauthorized
-        && !path.startsWith('/api/login') && !path.startsWith('/api/register')) {
+        && !path.startsWith('/api/login') && !path.startsWith('/api/register')
+        && !path.startsWith('/api/me')) { // PATCH /api/me 401 = wrong current password, not an expired session
       onUnauthorized(err);
     }
     throw err;

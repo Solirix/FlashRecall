@@ -63,10 +63,15 @@ export async function render(main) {
     gridEl.innerHTML = '';
     gridEl.append(skeleton(300), skeleton(300));
 
+    const HEAT_WEEKS = 30; // brief: big heatmap renders 30 weeks regardless of range tab
     let s;
+    let heatSrc;
     try {
-      const qs = `rangeDays=${rangeDays}${deckId ? `&deckId=${deckId}` : ''}`;
-      s = await api.get(`/api/stats/summary?${qs}`);
+      const deckQs = deckId ? `&deckId=${deckId}` : '';
+      s = await api.get(`/api/stats/summary?rangeDays=${rangeDays}${deckQs}`);
+      // The heatmap needs 30 weeks of days even when the range tab is shorter.
+      heatSrc = rangeDays >= HEAT_WEEKS * 7 ? s
+        : await api.get(`/api/stats/summary?rangeDays=${HEAT_WEEKS * 7}${deckQs}`);
     } catch (err) {
       if (err.status !== 401) toast(err.message || 'stats failed', 'error');
       return;
@@ -89,12 +94,13 @@ export async function render(main) {
       tile('clock', 'var(--orange)', s.avgAnswerMs != null ? fmtSecs(s.avgAnswerMs) : '—', 'Avg answer time', `last ${rangeDays} days`));
 
     // --- left column: heatmap + forecast ---
-    const weeks = Math.min(52, Math.ceil(rangeDays / 7));
+    const weeks = HEAT_WEEKS;
+    const heatDays = (heatSrc.heatmap || []).slice(-weeks * 7);
     const heatCard = el('div', { class: 'card' },
       el('div', { class: 'card-head' },
         el('div', {}, el('h3', { text: 'Review heatmap' }),
-          el('div', { class: 'card-sub', text: `past ${weeks} weeks · ${heat.reduce((a, h) => a + h.count, 0)} reviews` }))));
-    renderHeatmap(heatCard, heat, { weeks });
+          el('div', { class: 'card-sub', text: `past ${weeks} weeks · ${heatDays.reduce((a, h) => a + h.count, 0)} reviews` }))));
+    renderHeatmap(heatCard, heatDays, { weeks });
 
     const forecastCard = el('div', { class: 'card' });
     const fHead = el('div', { class: 'card-head' },

@@ -15,14 +15,38 @@ export async function render(main) {
       el('div', { class: 'home-col' }, skeleton(220), skeleton(180))));
 
   let stats;
+  let r30;
+  let r60;
   try {
-    [stats] = await Promise.all([
+    [stats, r30, r60] = await Promise.all([
       api.get('/api/stats/summary?rangeDays=168'),
+      api.get('/api/stats/summary?rangeDays=30'),
+      api.get('/api/stats/summary?rangeDays=60'),
       refreshDecks(),
     ]);
   } catch (err) {
     if (err.status !== 401) toast(err.message || 'failed to load dashboard', 'error');
     throw err;
+  }
+
+  // Retention trend: good-grade share over the last 30d vs the prior 30d
+  // (derived as the difference between the 60d and 30d windows).
+  let retentionTrend = null;
+  {
+    const goodShare = (s) => {
+      const g = (s && s.retentionByGrade) || {};
+      const tot = [1, 2, 3, 4].reduce((a, k) => a + ((g[k] && g[k].count) || 0), 0);
+      const good = [2, 3, 4].reduce((a, k) => a + ((g[k] && g[k].count) || 0), 0);
+      return tot > 0 ? { tot, good } : null;
+    };
+    const w30 = goodShare(r30);
+    const w60 = goodShare(r60);
+    if (w30 && w60 && w60.tot > w30.tot) {
+      const cur = (w30.good / w30.tot) * 100;
+      const prior = ((w60.good - w30.good) / (w60.tot - w30.tot)) * 100;
+      const delta = cur - prior;
+      retentionTrend = `<span class="${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '↑' : '↓'} ${Math.abs(delta).toFixed(1)}%</span> vs prior 30d`;
+    }
   }
 
   const decks = state.decks;
@@ -50,7 +74,7 @@ export async function render(main) {
   const tilesRow = el('div', { class: 'tiles' },
     tile('bolt', 'var(--accent)', String(totalDue), 'Due today', totalNew ? `${totalNew} new` : null),
     tile('target', 'var(--green)', stats.retention30d != null ? `${stats.retention30d}%` : '—', '30-day retention',
-      stats.retention30d != null && stats.totalReviews ? `across ${stats.totalReviews} reviews` : null),
+      retentionTrend || (stats.retention30d != null ? 'no prior 30d to compare' : null)),
     tile('clock', 'var(--blue)', fmtDuration(stats.studiedMsWeek), 'Studied this week',
       stats.avgAnswerMs != null ? `avg ${fmtSecs(stats.avgAnswerMs)} per card` : null),
     tile('flame', 'var(--orange)', String(stats.streakDays || 0), 'Day streak',
@@ -101,7 +125,7 @@ export async function render(main) {
         el('p', {
           class: 'home-sub',
           text: totalDue > 0
-            ? `${totalDue} cards due across ${dueDecks.length} deck${dueDecks.length === 1 ? '' : 's'} · about ${etaMin} minute${etaMin === 1 ? '' : 's'} at your pace`
+            ? `${totalDue} card${totalDue === 1 ? '' : 's'} due across ${dueDecks.length} deck${dueDecks.length === 1 ? '' : 's'} · about ${etaMin} minute${etaMin === 1 ? '' : 's'} at your pace`
             : 'Nothing due right now — all caught up.',
         })),
       totalDue > 0
@@ -141,5 +165,5 @@ function tile(iconName, color, num, label, sub) {
     }),
     el('div', { class: 'tile-num', text: num }),
     el('div', { class: 'tile-label', text: label }),
-    sub ? el('div', { class: 'tile-sub', text: sub }) : null);
+    sub ? el('div', { class: 'tile-sub', html: sub }) : null);
 }

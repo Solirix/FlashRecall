@@ -2,7 +2,7 @@
 // live cloze-card counter, ⌘↵ submit that keeps deck+tags for rapid entry.
 
 import { api } from '../api.js';
-import { el, icon, toast } from '../ui.js';
+import { el, icon, toast, tagsInput } from '../ui.js';
 import { state, refreshDecks } from '../app.js';
 
 function clozeCount(text) {
@@ -11,37 +11,6 @@ function clozeCount(text) {
   let m;
   while ((m = re.exec(text || ''))) if (parseInt(m[1], 10) > 0) ords.add(m[1]);
   return ords.size;
-}
-
-function tagsInput(initial = []) {
-  const tags = [...initial];
-  const input = el('input', { type: 'text', placeholder: tags.length ? '' : 'add tag…' });
-  const box = el('div', { class: 'tags-input', onclick: () => input.focus() });
-
-  function draw() {
-    box.innerHTML = '';
-    for (const t of tags) {
-      box.append(el('span', { class: 'tag-chip' }, `#${t}`,
-        el('button', {
-          type: 'button', 'aria-label': `remove ${t}`, text: '×',
-          onclick: (e) => { e.stopPropagation(); tags.splice(tags.indexOf(t), 1); draw(); },
-        })));
-    }
-    box.append(input);
-  }
-
-  function commit() {
-    const v = input.value.trim().replace(/^#/, '').replace(/\s+/g, '-');
-    if (v && !tags.includes(v)) { tags.push(v); draw(); }
-    input.value = '';
-  }
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); commit(); }
-    else if (e.key === 'Backspace' && !input.value && tags.length) { tags.pop(); draw(); }
-  });
-  input.addEventListener('blur', commit);
-  draw();
-  return { node: box, getTags: () => [...tags], clear: () => { tags.length = 0; draw(); } };
 }
 
 export async function render(main) {

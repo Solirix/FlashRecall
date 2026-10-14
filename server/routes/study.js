@@ -41,6 +41,7 @@ function toStudyCard(row, retention, now) {
     extra: row.extra,
     tags: row.tags,
     state: row.state,
+    flagged: !!row.flagged,
     previews: fsrs.previewIntervals({
       state: row.state,
       step: row.step,

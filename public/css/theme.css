@@ -26,6 +26,8 @@
   --teal: #2dd4bf;
   --violet: #a78bfa;
   --tint: transparent;
+  --scrim: rgba(0, 0, 0, 0.6);
+  --shadow: rgba(0, 0, 0, 0.4);
 }
 
 [data-theme="light"] {
@@ -51,6 +53,8 @@
   --yellow: #b5981f;
   --teal: #149e8c;
   --violet: #7c5cd6;
+  --scrim: rgba(35, 40, 60, 0.35);
+  --shadow: rgba(35, 40, 60, 0.18);
 }
 
 [data-theme="midnight"] {
@@ -76,6 +80,8 @@
   --yellow: #e8c94a;
   --teal: #2dd4bf;
   --violet: #a78bfa;
+  --scrim: rgba(0, 0, 0, 0.7);
+  --shadow: rgba(0, 0, 0, 0.6);
 }
 
 [data-theme="solarized"] {
@@ -101,6 +107,8 @@
   --yellow: #b58900;
   --teal: #2aa198;
   --violet: #6c71c4;
+  --scrim: rgba(0, 20, 28, 0.6);
+  --shadow: rgba(0, 20, 28, 0.5);
 }
 
 :root {

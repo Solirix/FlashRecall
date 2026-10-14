@@ -43,6 +43,8 @@ export async function render(main, params) {
     durations: [],
     history: [], // { card, idx } for undo
   };
+  const flagState = new Map(); // noteId → bool; seeded from the queue, updated on toggle
+  for (const c of cards) if (!flagState.has(c.noteId)) flagState.set(c.noteId, !!c.flagged);
   const total = queue.total || cards.length;
   let idx = 0;
   let revealed = false;
@@ -58,6 +60,7 @@ export async function render(main, params) {
   const sessionLine = el('div', { class: 'study-session-line' });
   const stage = el('div', { class: 'study-stage' });
   const flagBtn = el('button', { class: 'icon-btn', title: 'Flag note', html: icon('flag', 17) });
+  const stateChip = el('span', { class: 'chip c-accent', text: 'REVIEW' });
 
   const shell = el('div', { class: 'study-shell' },
     el('div', { class: 'study-header' },
@@ -65,7 +68,7 @@ export async function render(main, params) {
       el('div', { class: 'study-title' },
         el('span', { html: icon('layers', 18), style: 'color:var(--accent-2);display:grid' }),
         el('span', { text: queue.deck.name }),
-        el('span', { class: 'chip c-accent', text: 'REVIEW' })),
+        stateChip),
       progressText,
       el('div', { class: 'study-actions' },
         el('button', {
@@ -134,6 +137,9 @@ export async function render(main, params) {
     revealed = false;
     revealedAt = 0;
     busy = false;
+    flagBtn.classList.toggle('on', flagState.get(card.noteId) === true);
+    stateChip.textContent = card.state === 'new' ? 'NEW'
+      : card.state === 'review' ? 'REVIEW' : 'LEARNING';
     updateMeta();
 
     const tags = (card.tags || '').split(/\s+/).filter(Boolean);
@@ -151,7 +157,7 @@ export async function render(main, params) {
   }
 
   function hintFor(card) {
-    return card.state === 'new' ? 'new card · recall the reading and meaning' : '';
+    return card.state === 'new' ? 'new card · try to recall the answer' : '';
   }
 
   function firstLine(s) {
@@ -166,7 +172,7 @@ export async function render(main, params) {
     revealedAt = Date.now();
 
     const backParas = String(card.back || '').split(/\n+/).filter((l) => l.trim());
-    const [reading, ...rest] = backParas;
+    const [answer, ...rest] = backParas;
     const tags = (card.tags || '').split(/\s+/).filter(Boolean);
 
     const canSpeak = 'speechSynthesis' in window && typeof window.SpeechSynthesisUtterance === 'function';
@@ -192,14 +198,14 @@ export async function render(main, params) {
           el('div', { class: 'study-front small', html: mdBlocks(card.front) }),
           playBtn),
         el('hr', { class: 'study-divider' }),
-        reading ? el('div', { class: 'answer-section' },
-          el('span', { class: 'section-label', text: 'Reading' }),
-          el('div', { class: 'answer-reading', html: mdBlocks(reading) })) : null,
+        answer ? el('div', { class: 'answer-section' },
+          el('span', { class: 'section-label', text: 'Answer' }),
+          el('div', { class: 'answer-reading', html: mdBlocks(answer) })) : null,
         rest.length ? el('div', { class: 'answer-section' },
-          el('span', { class: 'section-label', text: 'Meaning' }),
+          el('span', { class: 'section-label', text: 'Details' }),
           el('div', { class: 'answer-body', html: rest.map((p) => `<p>${mdInline(p)}</p>`).join('') })) : null,
         card.extra ? el('div', { class: 'answer-extra' },
-          el('span', { class: 'section-label', text: 'Example' }),
+          el('span', { class: 'section-label', text: 'Extra' }),
           el('div', { class: 'ex-main', html: mdBlocks(card.extra.split(/\n+/)[0]) }),
           card.extra.split(/\n+/).length > 1
             ? el('div', { class: 'ex-note', html: mdBlocks(card.extra.split(/\n+/).slice(1).join('\n')) })
@@ -276,15 +282,18 @@ export async function render(main, params) {
 
   async function toggleFlag() {
     const card = current();
-    if (!card) return;
+    if (!card || busy) return;
+    busy = true;
     try {
-      const flagged = !card.flagged;
+      const flagged = !flagState.get(card.noteId);
       await api.post(`/api/notes/${card.noteId}/flag`, { flagged });
-      card.flagged = flagged;
+      flagState.set(card.noteId, flagged);
       flagBtn.classList.toggle('on', flagged);
       toast(flagged ? 'Flagged' : 'Flag removed', 'success');
     } catch (err) {
       toast(err.message || 'flag failed', 'error');
+    } finally {
+      busy = false;
     }
   }
 

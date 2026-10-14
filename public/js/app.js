@@ -138,7 +138,8 @@ function renderSidebar() {
     el('div', { class: 'side-label', text: 'Menu' }),
     NAV.map((item) => el('a', {
       class: `side-item${state.route.name === item.name ? ' active' : ''}`,
-      href: item.hash || '#/home',
+      href: item.hash || '#/study',
+      dataset: { nav: item.name },
       onclick: navHandler(item),
       html: icon(item.icon, 16),
     }, el('span', { text: item.label }))));
@@ -248,15 +249,19 @@ function renderTopbar() {
 function renderBottomnav() {
   return el('nav', { id: 'bottomnav' }, NAV.map((item) => el('a', {
     class: `bn-item${state.route.name === item.name ? ' active' : ''}`,
-    href: item.hash || '#/home',
+    href: item.hash || '#/study',
+    dataset: { nav: item.name },
     onclick: navHandler(item),
     html: icon(item.icon, 19),
   }, el('span', { text: item.label }))));
 }
 
+let shellUser = null; // user the current shell was rendered for
+
 function renderShell() {
   const app = document.getElementById('app');
   app.innerHTML = '';
+  shellUser = state.user;
   document.querySelector('.nav-scrim')?.remove();
   document.body.classList.remove('nav-open');
   const wrap = el('div', { class: 'main-wrap' }, renderTopbar(), el('main', { id: 'main' }));
@@ -309,13 +314,13 @@ export async function route() {
   state.route = { name: matched.name, params, query };
   document.body.dataset.view = matched.name === 'auth' ? 'auth' : matched.name;
 
-  if (matched.name === 'auth' || !document.getElementById('main')) renderShell();
-  document.querySelectorAll('#sidebar .side-item').forEach((n) => {
-    n.classList.toggle('active', n.getAttribute('href') === `#/${path}`
-      || (matched.name === 'study' && n.getAttribute('href') === `#/study/${params[0]}`));
+  if (matched.name === 'auth' || !document.getElementById('main') || shellUser !== state.user) renderShell();
+  document.querySelectorAll('#sidebar .side-item[data-nav], #bottomnav .bn-item[data-nav]').forEach((n) => {
+    n.classList.toggle('active', n.dataset.nav === matched.name);
   });
-  document.querySelectorAll('#bottomnav .bn-item').forEach((n) => {
-    n.classList.toggle('active', n.getAttribute('href') === `#/${matched.name}`);
+  document.querySelectorAll('#side-decks .side-item').forEach((n) => {
+    n.classList.toggle('active',
+      matched.name === 'study' && n.getAttribute('href') === `#/study/${params[0]}`);
   });
 
   const main = document.getElementById('main');

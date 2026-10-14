@@ -2,7 +2,7 @@
 // is evaluated server-side (deck:"Name" tag:x is:due …).
 
 import { api } from '../api.js';
-import { el, icon, toast, openModal, mdInline, fmtDate, skeleton } from '../ui.js';
+import { el, icon, toast, openModal, mdInline, fmtDate, skeleton, tagsInput } from '../ui.js';
 import { state, navigate, refreshDecks, deckColor } from '../app.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -175,7 +175,7 @@ export async function render(main, params, query) {
       el('option', { value: 'cloze', text: 'Cloze', selected: note.type === 'cloze' || null }));
     const front = el('textarea', { rows: 4 }, note.front);
     const back = el('textarea', { rows: 5 }, note.back);
-    const tagsField = el('input', { type: 'text', value: note.tags || '', placeholder: 'space separated' });
+    const tags = tagsInput((note.tags || '').split(/\s+/).filter(Boolean));
 
     const clozeBtn = el('button', {
       class: 'cloze-btn', type: 'button',
@@ -196,7 +196,7 @@ export async function render(main, params, query) {
       try {
         await api.patch(`/api/notes/${note.id}`, {
           deckId: Number(deckSel.value), type: typeSel.value,
-          front: front.value, back: back.value, tags: tagsField.value.trim(),
+          front: front.value, back: back.value, tags: tags.getTags().join(' '),
         });
         toast('Saved', 'success');
         submitQuery();
@@ -243,7 +243,7 @@ export async function render(main, params, query) {
         clozeBtn),
       el('div', { class: 'field-label', text: 'Front' }), front,
       el('div', { class: 'field-label', text: 'Back' }), back,
-      el('div', { class: 'field-label', text: 'Tags' }), tagsField,
+      el('div', { class: 'field-label', text: 'Tags' }), tags.node,
       el('div', { class: 'edit-actions' },
         el('button', {
           class: 'btn', onclick: async () => {
