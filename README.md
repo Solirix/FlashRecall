@@ -34,7 +34,8 @@ docker compose up -d --build
 Then open http://localhost:3000 and create an account. That's it — no
 `npm install`, no build step, one container, one volume.
 
-Options (set in the shell or a `.env` file next to `docker-compose.yml`):
+Options (set in a `.env` file next to `docker-compose.yml` — see
+`.env.example` — or exported in the shell):
 
 ```sh
 RECALL_PORT=8080 docker compose up -d --build      # publish on a different port
@@ -57,11 +58,18 @@ npm test                    # or: node --test "server/test/**/*.test.js"
 
 ## Configuration
 
-| Variable             | Default  | Description                                              |
-| -------------------- | -------- | -------------------------------------------------------- |
-| `PORT`               | `3000`   | HTTP port                                                |
-| `DATA_DIR`           | `./data` | Directory holding `recall.db` (SQLite, WAL mode)         |
-| `REGISTRATION_OPEN`  | `true`   | Set to `false` to close sign-ups once ≥1 user exists     |
+Configuration comes from a `.env` file in the project root (copy
+`.env.example` to get started) or from real environment variables — real
+environment variables always win. `node server/index.js` reads `.env`
+directly; Docker Compose reads it automatically for its own substitution.
+
+| Variable            | Default  | Description                                                     |
+| ------------------- | -------- | --------------------------------------------------------------- |
+| `RECALL_PORT`       | `3000`   | HTTP port (with Compose: the published host port)               |
+| `RECALL_DATA_DIR`   | `./data` | Directory holding `recall.db` (SQLite, WAL mode; local dev only) |
+| `REGISTRATION_OPEN` | `true`   | Set to `false` to close sign-ups once ≥1 user exists            |
+
+The legacy names `PORT` and `DATA_DIR` are still honored as fallbacks.
 
 ## Backup
 

@@ -1,3 +1,5 @@
+# Compose reads .env in this directory automatically — copy .env.example
+# to .env and edit it, or export the variables in your shell instead.
 services:
   recall:
     build: .

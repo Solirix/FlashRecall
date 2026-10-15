@@ -200,8 +200,9 @@ function createServer({ dataDir } = {}) {
 }
 
 if (require.main === module) {
+  require('./env').load();
   const { server, db } = createServer({});
-  const port = Number(process.env.PORT) || 3000;
+  const port = Number(process.env.RECALL_PORT || process.env.PORT) || 3000;
   server.listen(port, () => {
     console.log(`FlashRecall listening on http://localhost:${port}`);
   });

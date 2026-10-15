@@ -85,7 +85,7 @@ CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 `;
 
 function openDatabase(dataDir) {
-  const dir = dataDir || process.env.DATA_DIR || './data';
+  const dir = dataDir || process.env.RECALL_DATA_DIR || process.env.DATA_DIR || './data';
   fs.mkdirSync(dir, { recursive: true });
   const db = new DatabaseSync(path.join(dir, 'recall.db'));
   db.exec('PRAGMA journal_mode = WAL');
