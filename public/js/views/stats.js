@@ -149,11 +149,7 @@ export async function render(main) {
       el('div', { class: 'card-head' }, el('div', {}, el('h3', { text: 'FSRS scheduler' }))),
       el('div', { class: 'kv-row' }, el('span', { text: 'Desired retention' }), el('span', { class: 'v', text: (s.fsrs?.desiredRetention ?? 0.9).toFixed(2) })),
       el('div', { class: 'kv-row' }, el('span', { text: 'Avg stability' }), el('span', { class: 'v', text: s.fsrs?.avgStability != null ? `${s.fsrs.avgStability} d` : '—' })),
-      el('div', { class: 'kv-row' }, el('span', { text: 'Leech threshold' }), el('span', { class: 'v', text: `${s.fsrs?.leechThreshold ?? 8} lapses` })),
-      el('button', {
-        class: 'btn', style: 'width:100%;margin-top:10px',
-        onclick: () => toast('Using default FSRS parameters — optimization not available in this build'),
-      }, 'Re-optimize'));
+      el('div', { class: 'kv-row' }, el('span', { text: 'Leech threshold' }), el('span', { class: 'v', text: `${s.fsrs?.leechThreshold ?? 8} lapses` })));
 
     gridEl.innerHTML = '';
     gridEl.append(
