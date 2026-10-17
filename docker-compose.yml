@@ -1,17 +1,27 @@
 # Compose reads .env in this directory automatically — copy .env.example
 # to .env and edit it, or export the variables in your shell instead.
+#
+# Variables are passed through explicitly below rather than with `env_file:`
+# on purpose: RECALL_PORT and RECALL_DATA_DIR describe the *host* side, and
+# the server prefers them over PORT/DATA_DIR, so leaking them into the
+# container would move the listen port and database away from 3000 and /data.
 services:
   recall:
     build: .
     image: flashrecall:latest
+    # Who the server runs as inside the container. 1000 (the image's `node`
+    # user) suits rootful Docker. Under rootless Docker, container uid 0 is
+    # your own host user, so set RECALL_UID=0 / RECALL_GID=0 there or ./data
+    # won't be writable.
+    user: "${RECALL_UID:-1000}:${RECALL_GID:-1000}"
     ports:
       - "${RECALL_PORT:-3000}:3000"
     environment:
-      # Set to "false" after creating your accounts to close public sign-ups.
+      # "false" closes sign-ups. After editing .env, run `docker compose up -d`
+      # (not `restart`, which keeps the old container and its old env).
       REGISTRATION_OPEN: "${REGISTRATION_OPEN:-true}"
     volumes:
-      - recall-data:/data
+      # Bind mount so the SQLite database lives on the host, in ./data by
+      # default. It must be writable by the container user (see `user:`).
+      - "${RECALL_DATA_DIR:-./data}:/data"
     restart: unless-stopped
-
-volumes:
-  recall-data:

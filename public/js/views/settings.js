@@ -1,7 +1,7 @@
 // #/settings — account, appearance (live-previewed), scheduling, sharing, about.
 
 import { api } from '../api.js';
-import { el, icon, toast } from '../ui.js';
+import { el, icon, toast, passwordField } from '../ui.js';
 import { state, applyTheme, cacheSettings, navigate, refreshDecks } from '../app.js';
 
 const THEMES = [
@@ -73,7 +73,7 @@ export async function render(main) {
         } catch (err) { toast(err.message || 'failed', 'error'); }
       },
     }, 'Change'),
-    el('div', { style: 'display:flex;flex-direction:column;gap:6px;width:190px' }, curPw, newPw)),
+    el('div', { style: 'display:flex;flex-direction:column;gap:6px;width:190px' }, passwordField(curPw), passwordField(newPw))),
     row('Log out', null, el('button', {
       class: 'btn btn-danger',
       onclick: async () => {

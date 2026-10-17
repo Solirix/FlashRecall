@@ -68,10 +68,10 @@ function getUserBySession(db, req) {
   return db.prepare('SELECT * FROM users WHERE id = ?').get(session.user_id) || null;
 }
 
-function registrationAllowed(db) {
-  if (process.env.REGISTRATION_OPEN !== 'false') return true;
-  const { n } = db.prepare('SELECT COUNT(*) AS n FROM users').get();
-  return n === 0;
+// REGISTRATION_OPEN=false closes sign-ups outright — even on an empty
+// database — so the .env value is the single source of truth.
+function registrationAllowed() {
+  return process.env.REGISTRATION_OPEN !== 'false';
 }
 
 function requireAuth(req) {

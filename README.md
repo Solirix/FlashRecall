@@ -32,10 +32,13 @@ docker compose up -d --build
 ```
 
 Then open http://localhost:3000 and create an account. That's it — no
-`npm install`, no build step, one container, one volume.
+`npm install`, no build step, one container. The database lives on the host
+in `./data` (bind-mounted at `/data`).
 
 Options (set in a `.env` file next to `docker-compose.yml` — see
-`.env.example` — or exported in the shell):
+`.env.example` — or exported in the shell). After editing `.env`, apply it
+with `docker compose up -d`; `docker compose restart` reuses the old
+container and does **not** pick up `.env` changes.
 
 ```sh
 RECALL_PORT=8080 docker compose up -d --build      # publish on a different port
@@ -43,8 +46,8 @@ REGISTRATION_OPEN=false docker compose up -d        # close sign-ups after setup
 ```
 
 The container has a built-in health check (`GET /api/health`). To upgrade,
-`git pull && docker compose up -d --build` — your data stays in the
-`recall-data` volume, and browsers revalidate assets so nobody runs stale JS.
+`git pull && docker compose up -d --build` — your data stays in
+`./data`, and browsers revalidate assets so nobody runs stale JS.
 For HTTPS, put any reverse proxy (Caddy, Traefik, nginx) in front of port 3000.
 
 ## Local development
@@ -66,8 +69,9 @@ directly; Docker Compose reads it automatically for its own substitution.
 | Variable            | Default  | Description                                                     |
 | ------------------- | -------- | --------------------------------------------------------------- |
 | `RECALL_PORT`       | `3000`   | HTTP port (with Compose: the published host port)               |
-| `RECALL_DATA_DIR`   | `./data` | Directory holding `recall.db` (SQLite, WAL mode; local dev only) |
-| `REGISTRATION_OPEN` | `true`   | Set to `false` to close sign-ups once ≥1 user exists            |
+| `RECALL_DATA_DIR`   | `./data` | Directory holding `recall.db` (with Compose: the host directory mounted at `/data`) |
+| `REGISTRATION_OPEN` | `true`   | `false` closes sign-ups completely; flip it any time (with Compose, apply via `docker compose up -d`) |
+| `RECALL_UID` / `RECALL_GID` | `1000` | Compose only: container user. Use `0` under rootless Docker so `./data` is writable |
 
 The legacy names `PORT` and `DATA_DIR` are still honored as fallbacks.
 
@@ -80,7 +84,7 @@ out of the data volume:
 docker compose cp recall:/data/recall.db ./backup-recall.db
 ```
 
-(Or stop the container and copy the file from the `recall-data` volume.)
+(Or stop the container and copy `./data/recall.db` directly.)
 
 ## API overview
 

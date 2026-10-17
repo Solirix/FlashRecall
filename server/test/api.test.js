@@ -42,6 +42,27 @@ test('register -> me, duplicate register 409, login wrong password 401', async (
   }
 });
 
+test('REGISTRATION_OPEN=false closes sign-ups, even on an empty database', async () => {
+  const app = await boot();
+  const prev = process.env.REGISTRATION_OPEN;
+  try {
+    const call = client(app.base);
+    process.env.REGISTRATION_OPEN = 'false';
+    const health = await call('GET', '/api/health');
+    assert.equal(health.data.registrationOpen, false);
+    const res = await call('POST', '/api/register', { username: 'nobody', password: 'password123' });
+    assert.equal(res.status, 403);
+
+    process.env.REGISTRATION_OPEN = 'true';
+    assert.equal((await call('GET', '/api/health')).data.registrationOpen, true);
+    await registerUser(call, 'somebody');
+  } finally {
+    if (prev === undefined) delete process.env.REGISTRATION_OPEN;
+    else process.env.REGISTRATION_OPEN = prev;
+    await app.close();
+  }
+});
+
 test('decks, notes, queue, answer, undo, browse, stats', async () => {
   const app = await boot();
   try {

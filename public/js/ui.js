@@ -49,6 +49,8 @@ const P = {
   image: 'M4 5h16v14H4zM4 15l5-5 4 4 3-3 4 4M9 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z',
   mic: 'M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zM19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8',
   check: 'M20 6 9 17l-5-5',
+  eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+  eyeOff: 'M3 3l18 18M10.6 5.1A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2M6.6 6.6C3.9 8.4 2 12 2 12s3.5 7 10 7c1.8 0 3.4-.5 4.8-1.3M9.9 9.9a3 3 0 0 0 4.2 4.2',
   caret: 'M9 6l6 6-6 6',
   cards: 'M8 3h12v13H8zM4 8v13h12M4 8l1-2',
   clipboard: 'M9 4h6v3H9zM9 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-3M9 13l2 2 4-4',
@@ -60,6 +62,23 @@ const P = {
 export function icon(name, size = 18) {
   const fill = name === 'bolt' || name === 'play';
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${fill ? 'currentColor' : 'none'}" stroke="${fill ? 'none' : 'currentColor'}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${P[name] || ''}"/></svg>`;
+}
+
+// Wraps a password <input> with an eye button that reveals it (hidden by default).
+export function passwordField(input) {
+  const toggle = el('button', {
+    type: 'button', class: 'pw-toggle', 'aria-label': 'Show password', 'aria-pressed': 'false',
+    html: icon('eye', 16),
+    onmousedown: (e) => e.preventDefault(), // keep focus and caret in the input
+    onclick: () => {
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      toggle.innerHTML = icon(show ? 'eyeOff' : 'eye', 16);
+      toggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      toggle.setAttribute('aria-pressed', String(show));
+    },
+  });
+  return el('div', { class: 'pw-field' }, input, toggle);
 }
 
 // --- motion ---

@@ -92,7 +92,7 @@ function registerAuthRoutes(router, db) {
     const displayName = typeof body.displayName === 'string' && body.displayName.trim()
       ? body.displayName.trim().slice(0, 64)
       : null;
-    if (!auth.registrationAllowed(db)) {
+    if (!auth.registrationAllowed()) {
       throw httpError(403, 'registration is closed');
     }
     const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
@@ -148,7 +148,7 @@ function createServer({ dataDir } = {}) {
 
   router.get('/api/health', (req, res) => {
     db.prepare('SELECT 1').get();
-    json(res, { ok: true });
+    json(res, { ok: true, registrationOpen: auth.registrationAllowed() });
   });
 
   const publicPaths = new Set(['/api/register', '/api/login', '/api/health']);
