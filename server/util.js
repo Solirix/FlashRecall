@@ -143,6 +143,11 @@ function renderCloze(text, ord, side) {
   });
 }
 
+// Card text minus the markdown-lite markers (**bold**, __u__, `code`, *em*).
+function plain(s) {
+  return String(s || '').replace(/\*\*|__|`|\*/g, '').trim();
+}
+
 module.exports = {
   DAY_MS,
   DEFAULT_SETTINGS,
@@ -160,4 +165,5 @@ module.exports = {
   mergeSettings,
   parseClozeOrds,
   renderCloze,
+  plain,
 };

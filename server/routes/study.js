@@ -1,6 +1,7 @@
 'use strict';
 
 const fsrs = require('../fsrs');
+const search = require('../search');
 const {
   json, httpError, badRequest, notFound, mergeSettings, renderCloze, startOfDay, DAY_MS,
 } = require('../util');
@@ -140,6 +141,7 @@ module.exports = function registerStudyRoutes(router, db, ctx) {
           tags.push('leech');
           db.prepare('UPDATE notes SET tags = ?, updated_at = ? WHERE id = ?')
             .run(tags.join(' '), now, note.id);
+          search.upsertNote(db, note.id);
           leech = true;
         }
       }

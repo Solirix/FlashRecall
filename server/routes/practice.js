@@ -5,7 +5,7 @@
 // checker is instant and the user can override it. Never touches scheduling.
 
 const crypto = require('node:crypto');
-const { json, badRequest, clampInt, renderCloze } = require('../util');
+const { json, badRequest, clampInt, renderCloze, plain } = require('../util');
 const { ownDeck } = require('./decks');
 
 const FORMATS = new Set(['written', 'choice', 'mixed']);
@@ -17,10 +17,6 @@ function shuffle(arr) {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
-}
-
-function plain(s) {
-  return String(s || '').replace(/\*\*|__|`|\*/g, '').trim();
 }
 
 // Hidden text of every deletion with this ordinal, e.g. {{c1::Paris::city}} -> Paris.

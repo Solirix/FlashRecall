@@ -3,11 +3,12 @@
 // - JSON in/out
 // - throws { status, message } on failure
 // - any 401 (outside login/register) notifies the app so it can redirect to #/login
+// - optional AbortSignal; an aborted request rethrows the AbortError untouched
 
 let onUnauthorized = null;
 export function setUnauthorizedHandler(fn) { onUnauthorized = fn; }
 
-async function request(path, { method = 'GET', body } = {}) {
+async function request(path, { method = 'GET', body, signal } = {}) {
   let res;
   try {
     res = await fetch(path, {
@@ -15,8 +16,10 @@ async function request(path, { method = 'GET', body } = {}) {
       credentials: 'same-origin',
       headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
       body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal,
     });
-  } catch {
+  } catch (err) {
+    if (signal && signal.aborted) throw err;
     throw { status: 0, message: 'network error — is the server running?' };
   }
   let data = null;
@@ -34,7 +37,7 @@ async function request(path, { method = 'GET', body } = {}) {
 }
 
 export const api = {
-  get: (path) => request(path),
+  get: (path, { signal } = {}) => request(path, { signal }),
   post: (path, body) => request(path, { method: 'POST', body: body ?? {} }),
   patch: (path, body) => request(path, { method: 'PATCH', body: body ?? {} }),
   put: (path, body) => request(path, { method: 'PUT', body: body ?? {} }),

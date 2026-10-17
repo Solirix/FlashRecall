@@ -6,6 +6,7 @@
   "description": "Self-hosted multi-user Anki-style flashcard web app (zero dependencies)",
   "scripts": {
     "start": "node server/index.js",
-    "test": "node --test \"server/test/**/*.test.js\""
+    "test": "node --test \"server/test/**/*.test.js\"",
+    "bench": "node --disable-warning=ExperimentalWarning server/bench/search.bench.js"
   }
 }

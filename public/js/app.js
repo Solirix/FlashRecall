@@ -3,6 +3,7 @@
 
 import { api, setUnauthorizedHandler } from './api.js';
 import { el, icon, toast, initials, motionOK, sleep } from './ui.js';
+import { openPalette, togglePalette, isPaletteOpen, shortcutLabel } from './palette.js';
 
 export const state = {
   user: null,
@@ -83,7 +84,7 @@ export async function refreshDecks() {
 
 // ---------- shell ----------
 
-const NAV = [
+export const NAV = [
   { name: 'home', label: 'Home', icon: 'home', hash: '#/home' },
   { name: 'study', label: 'Study', icon: 'layers', hash: null }, // resolves to top-due deck
   { name: 'decks', label: 'Decks', icon: 'cards', hash: '#/decks' },
@@ -98,7 +99,7 @@ export function navigate(hash) {
   else location.hash = hash;
 }
 
-function goStudy() {
+export function goStudy() {
   const deck = topDueDeck();
   if (deck) navigate(`#/study/${deck.id}`);
   else {
@@ -202,16 +203,13 @@ function renderSidebarDecks(container) {
 }
 
 function renderTopbar() {
-  const searchInput = el('input', {
-    id: 'global-search', type: 'text', placeholder: 'Search cards, decks, tags…',
-    onkeydown: (e) => {
-      if (e.key === 'Enter') {
-        const q = searchInput.value.trim();
-        navigate(`#/browse${q ? `?q=${encodeURIComponent(q)}` : ''}`);
-        searchInput.blur();
-      }
-    },
-  });
+  const trigger = el('button', {
+    class: 'search-trigger', type: 'button', 'aria-label': `Search (${shortcutLabel.join('+')})`,
+    onclick: () => openPalette(),
+  },
+  el('span', { class: 'search-trigger-icon', html: icon('search', 15) }),
+  el('span', { class: 'search-trigger-label', text: 'Search everything…' }),
+  el('span', { class: 'search-trigger-keys' }, shortcutLabel.map((k) => el('kbd', { class: 'kbd', text: k }))));
   return el('header', { id: 'topbar' },
     el('button', {
       class: 'hamburger', html: icon('menu', 20), 'aria-label': 'Menu',
@@ -228,8 +226,7 @@ function renderTopbar() {
         }
       },
     }),
-    el('div', { class: 'search-box' },
-      el('span', { html: icon('search', 15) }), searchInput, el('span', { class: 'kbd', text: '⌘K' })),
+    trigger,
     el('div', { class: 'topbar-right' },
       el('span', {
         class: 'avatar',
@@ -342,11 +339,17 @@ export async function route() {
 
 // ---------- global keys ----------
 
+const typingIn = (t) => t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+
 document.addEventListener('keydown', (e) => {
+  if (!state.user) return;
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault();
-    const input = document.getElementById('global-search');
-    if (input) { input.focus(); input.select(); }
+    togglePalette();
+  } else if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey && !typingIn(e.target)
+      && !isPaletteOpen() && !document.querySelector('.modal-overlay')) {
+    e.preventDefault();
+    openPalette();
   }
 });
 

@@ -78,9 +78,10 @@ export async function render(main, params, query) {
   }
 
   const notes = data.notes || [];
+  const totalLabel = `${data.total.toLocaleString()}${data.capped ? '+' : ''}`;
   const dueCount = notes.filter((n) => n.due === 'Today' || n.due === 'Learning').length;
   const leechCount = notes.filter((n) => (n.tags || '').split(/\s+/).includes('leech')).length;
-  headStats.textContent = `${data.total} notes · ${dueCount} due · ${leechCount} leeches`;
+  headStats.textContent = `${totalLabel} notes · ${dueCount} due · ${leechCount} leeches`;
 
   // ---- left pane: decks + tags ----
   decksPane.innerHTML = '';
@@ -146,7 +147,17 @@ export async function render(main, params, query) {
     list.append(rowEl);
   }
   listPane.append(list,
-    el('div', { class: 'list-foot', text: `${notes.length} of ${data.total} shown · sort: due ↓` }));
+    el('div', { class: 'list-foot', text: `${notes.length} of ${totalLabel} shown · ${data.sort === 'relevance' ? 'best match first' : 'newest first'}` }));
+
+  // deep link from the search palette: #/browse?q=…&note=ID
+  const focusId = Number(query.get('note'));
+  if (focusId) {
+    const idx = notes.findIndex((n) => n.id === focusId);
+    const rowEl = idx === -1 ? null : list.children[idx];
+    selectNote(idx === -1 ? { id: focusId } : notes[idx], rowEl);
+    if (rowEl) rowEl.scrollIntoView({ block: 'center' });
+    if (window.matchMedia('(max-width: 640px)').matches) tabs.children[2].click();
+  }
 
   function selectNote(n, rowEl) {
     list.querySelectorAll('.card-row').forEach((r) => r.classList.remove('selected'));

@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
+const { ensureSearchIndex } = require('./search');
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS users (
@@ -81,6 +82,8 @@ CREATE INDEX IF NOT EXISTS idx_cards_note ON cards(note_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_user_time ON reviews(user_id, reviewed_at);
 CREATE INDEX IF NOT EXISTS idx_notes_deck ON notes(deck_id);
 CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id);
+CREATE INDEX IF NOT EXISTS idx_notes_user_created ON notes(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_cards_note_state ON cards(note_id, state, due);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 `;
 
@@ -91,6 +94,7 @@ function openDatabase(dataDir) {
   db.exec('PRAGMA journal_mode = WAL');
   db.exec('PRAGMA foreign_keys = ON');
   db.exec(SCHEMA);
+  ensureSearchIndex(db);
   return db;
 }
 

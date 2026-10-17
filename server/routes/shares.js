@@ -3,6 +3,7 @@
 const {
   json, badRequest, notFound, parseClozeOrds,
 } = require('../util');
+const search = require('../search');
 
 module.exports = function registerShareRoutes(router, db) {
   router.post('/api/shares', (req, res, params, body) => {
@@ -90,6 +91,7 @@ module.exports = function registerShareRoutes(router, db) {
       for (const note of notes) {
         const noteInfo = insertNote.run(req.user.id, newDeckId, note.type, note.front, note.back, note.extra, note.tags, now, now);
         const newNoteId = Number(noteInfo.lastInsertRowid);
+        search.upsertNote(db, newNoteId);
         noteCount += 1;
         const ords = note.type === 'cloze' ? parseClozeOrds(note.front) : [0];
         for (const ord of ords) {
